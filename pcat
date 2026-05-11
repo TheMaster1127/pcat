@@ -212,23 +212,48 @@ def output_file(filepath, args, is_stdin=False):
         print()
 
 def follow_file(filepath, args):
+    # Wait for file to appear
+    while not os.path.exists(filepath):
+        msg = f"Waiting for {filepath} to appear... (Ctrl+C to stop)"
+        print(f"{Fore.MAGENTA}{msg}{Style.RESET_ALL}" if args.color else msg, flush=True)
+        time.sleep(0.5)
+    
     msg = f"Following {filepath} (Ctrl+C to stop)"
     print(f"{Fore.MAGENTA}{msg}{Style.RESET_ALL}" if args.color else msg)
+    
     try:
         with open(filepath, 'r', encoding='utf-8', errors='replace') as f:
+            # Go to end
             f.seek(0, os.SEEK_END)
+            
             while True:
                 line = f.readline()
                 if not line:
+                    # No new line, wait a bit
                     time.sleep(0.1)
+                    
+                    # Check if file was truncated (e.g., log rotation or overwrite)
+                    current_pos = f.tell()
+                    f.seek(0, os.SEEK_END)
+                    end_pos = f.tell()
+                    
+                    if end_pos < current_pos:
+                        # File got smaller (truncated), go to beginning
+                        f.seek(0, os.SEEK_SET)
+                    else:
+                        # Go back to where we were
+                        f.seek(current_pos)
                     continue
+                
                 line = line.rstrip('\n\r')
                 if args.max_len > 0 and len(line) > args.max_len:
                     line = line[:args.max_len] + '…'
-                # flush=True ensures lines print immediately instead of waiting in the buffer
                 print(line, flush=True)
     except KeyboardInterrupt:
         print()
+    except PermissionError:
+        print(f"pcat: {filepath}: Permission denied", file=sys.stderr)
+        sys.exit(1)
 
 def main():
     p = argparse.ArgumentParser(description="pcat - pretty cat", add_help=False)
@@ -302,3 +327,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
