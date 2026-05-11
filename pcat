@@ -1,5 +1,18 @@
 #!/usr/bin/env python3
 
+# ==============================================================================
+# pcat - Pretty Cat
+# ------------------------------------------------------------------------------
+# A supercharged cat replacement with recursion, filtering, and colors.
+#
+# Copyright (C) 2026 TheMaster1127 a.k.a. Mr. Compiler
+# Licensed under the GNU General Public License v3.0 (GPLv3)
+# 
+# This program is free software: you can redistribute it and/or modify it under 
+# the terms of the GNU General Public License as published by the Free Software 
+# Foundation, either version 3 of the License, or at your option, any later version.
+# ==============================================================================
+
 import os
 import sys
 import argparse
