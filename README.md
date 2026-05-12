@@ -266,8 +266,16 @@ pcat -r . -id "src, lib" -xd "test, build, .*"
 
 ## Follow Mode (`-f`) – In‑Depth
 
-The `-f` option (follow) makes `pcat` behave similarly to `tail -f`. It opens a single file, seeks to the end, and prints new lines as they are written. This mode ignores:
+The `-f` option (follow) makes `pcat` behave similarly to `tail -f`. It opens a single file and prints new lines as they are written. 
 
+**Smart Start Behavior:**
+- If the file **already exists** when you start `pcat`, it seeks to the end and only shows new content (standard behavior).
+- If the file **does not exist**, `pcat` will wait for it to appear. Once created, it starts reading from **line 1**, ensuring you see the very first data saved to that file.
+
+**Log Rotation Support:** 
+If the file is truncated (e.g., cleared or rotated), `pcat` detects the size change and automatically resets to the beginning of the file to continue following the new data.
+
+**This mode ignores:**
 - `-r` (recursion)
 - `-x`, `-i`, `-xd`, `-id`
 - `--min-size`, `--max-size`, `--min-lines`, `--max-lines`, `--min-chars`, `--max-chars`
@@ -275,13 +283,12 @@ The `-f` option (follow) makes `pcat` behave similarly to `tail -f`. It opens a 
 - `-p` (page)
 - `--pager-cmd`
 
-It **respects**:
-
+**It respects:**
 - `-c` (colour – prints a starting message in magenta)
 - `-w` (line truncation)
 - `-n` (line numbers are **not** printed in follow mode because the offset from start is unknown)
 
-**Note on Buffering:** Standard output buffering can sometimes delay lines from appearing. `pcat` forces an immediate output flush on every new line to ensure true real-time viewing. (Also note that this is a basic stream follower; it does not automatically track file truncation or log rotations).
+**Note on Buffering:** Standard output buffering can sometimes delay lines from appearing. `pcat` forces an immediate output flush on every new line to ensure true real-time viewing.
 
 If more than one file is given with `-f`, an error is printed and the program exits.
 
