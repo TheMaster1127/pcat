@@ -212,37 +212,32 @@ def output_file(filepath, args, is_stdin=False):
         print()
 
 def follow_file(filepath, args):
-    # Wait for file to appear
-    while not os.path.exists(filepath):
+    file_existed_at_start = os.path.exists(filepath)
+    
+    if not file_existed_at_start:
         msg = f"Waiting for {filepath} to appear... (Ctrl+C to stop)"
         print(f"{Fore.MAGENTA}{msg}{Style.RESET_ALL}" if args.color else msg, flush=True)
-        time.sleep(0.5)
+        while not os.path.exists(filepath):
+            time.sleep(0.5)
     
     msg = f"Following {filepath} (Ctrl+C to stop)"
-    print(f"{Fore.MAGENTA}{msg}{Style.RESET_ALL}" if args.color else msg)
+    print(f"{Fore.MAGENTA}{msg}{Style.RESET_ALL}" if args.color else msg, flush=True)
     
     try:
         with open(filepath, 'r', encoding='utf-8', errors='replace') as f:
-            # Go to end
-            f.seek(0, os.SEEK_END)
+            # If the file already existed when we started the command, skip to the end (standard tail -f).
+            # If the file is brand new (just created), start from the beginning to capture the first write!
+            if file_existed_at_start:
+                f.seek(0, os.SEEK_END)
             
             while True:
+                curr_pos = f.tell()
                 line = f.readline()
                 if not line:
-                    # No new line, wait a bit
                     time.sleep(0.1)
-                    
-                    # Check if file was truncated (e.g., log rotation or overwrite)
-                    current_pos = f.tell()
-                    f.seek(0, os.SEEK_END)
-                    end_pos = f.tell()
-                    
-                    if end_pos < current_pos:
-                        # File got smaller (truncated), go to beginning
+                    # Check for truncation (log rotation)
+                    if os.path.exists(filepath) and os.path.getsize(filepath) < curr_pos:
                         f.seek(0, os.SEEK_SET)
-                    else:
-                        # Go back to where we were
-                        f.seek(current_pos)
                     continue
                 
                 line = line.rstrip('\n\r')
@@ -305,7 +300,6 @@ def main():
     files = collect_files(args.files, args.recursive, include_patterns, exclude_patterns,
                           include_dir_patterns, exclude_dir_patterns)
     if args.page:
-        # Added encoding strictly to prevent Windows crash when pager encounters truncated unicode '…'
         proc = subprocess.Popen(args.pager_cmd.split(), stdin=subprocess.PIPE, text=True, encoding='utf-8', errors='replace')
         sys.stdout = proc.stdin
 
@@ -327,4 +321,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
